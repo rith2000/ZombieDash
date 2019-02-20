@@ -69,13 +69,13 @@ int StudentWorld::move()
 
 void StudentWorld::cleanUp()
 {
-//    vector<Actor*>::iterator it;
-//    it = actors.begin();
-//    for (; it != actors.end(); it++) {
-//        delete *it;
-//    }
-    
+    vector<Wall*>::iterator it;
+    it = walls.begin();
+    for (; it != walls.end(); it++) {
+        delete *it;
+    }
     delete p1;
+    
 //    delete test;
     
 }
@@ -143,4 +143,34 @@ void StudentWorld::getLevelString(string levelFile)
 
 int StudentWorld::getInt(string s){
     return (s[1] - '0') + 10*(s[0] - '0');
+}
+
+bool StudentWorld::isInWall(int x, int y){
+    vector<Wall*>::iterator it;
+    it = walls.begin();
+    for (; it != walls.end(); it++) {
+        int startX = (*it)->getX(), startY = (*it)->getY();
+        //
+      
+        if ((p1->getDirection() == p1->left || p1->getDirection() == p1->down) && x >= startX && x <= startX + SPRITE_WIDTH - 1 && y >= startY && y <= startY + SPRITE_HEIGHT - 1)
+            return true;
+        else if ((p1->getDirection() == p1->right || p1->getDirection() == p1->up) && x + SPRITE_WIDTH - 1 >= startX && x <= startX  && y + SPRITE_HEIGHT - 1 >= startY && y <= startY)
+            return true;
+        
+//        if ((p1->getDirection() == p1->right || p1->getDirection() == p1->left) && x >= startX && x <= startX + SPRITE_WIDTH - 1)
+//            return true;
+//        else if ((p1->getDirection() == p1->up || p1->getDirection() == p1->down ) && y >= startY && y <= startY + SPRITE_HEIGHT - 1)
+//            return true;
+        
+        
+//        if ( x >= startX && x <= startX + SPRITE_WIDTH - 1 && y >= startY && y <= startY + SPRITE_HEIGHT - 1 || x < startX && x > startX + SPRITE_WIDTH - 1 && y < startY && y > startY + SPRITE_HEIGHT - 1 )
+//            return true;
+//        else if (p1->getDirection() == p1->right)
+//            return true;
+//        else if (p1->getDirection() == p1->up )
+//            return true;
+//        else if (p1->getDirection() == p1->down )
+//            return true;
+    }
+    return false;
 }
