@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>  // defines the type std::ostringstream
 #include <iomanip>
+#include <cmath>
 using namespace std;
 
 GameWorld* createStudentWorld(string assetPath)
@@ -23,6 +24,8 @@ StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath)
 {
     p1 = nullptr;
+    
+    
 }
 
 StudentWorld::~StudentWorld()
@@ -32,7 +35,8 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
-    getLevelString("level01.txt");
+    oss2 << "level0"  << getLevel() << ".txt";
+    getLevelString(oss2.str());
     int level_x, level_y;
     string s = oss.str();
     
@@ -41,43 +45,63 @@ int StudentWorld::init()
         level_x = getInt(s.substr(i + 1,2));
         level_y = getInt(s.substr(i + 3,2));
         if (s[i] == '@'){
-            p1 = new Penelope(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this);
+            
+            p1 = new Penelope(SPRITE_WIDTH * 1,SPRITE_HEIGHT * 13, this);
         } else if (s[i] == '#'){
-            walls.push_back(new Wall(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+            actors.push_back(new Wall(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'X'){
+            actors.push_back(new Exit(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'O'){
+            actors.push_back(new Pit(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'S'){
+            actors.push_back(new SmartZombie(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'D'){
+            actors.push_back(new DumbZombie(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'C'){
+            actors.push_back(new Citizen(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'V'){
+            actors.push_back(new VaccineGoodie(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'G'){
+            actors.push_back(new GasCanGoodie(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
+        } else if (s[i] == 'L'){
+            actors.push_back(new LandmineGoodie(SPRITE_WIDTH * level_x,SPRITE_HEIGHT * level_y, this));
         }
         
     }
+    
+        oss.str("");
+        oss2.str("");
+        cout << "emptystring: " << oss.str() << endl;
         return GWSTATUS_CONTINUE_GAME;
 }
 
 int StudentWorld::move()
 {
-    if (p1 != nullptr)
-        p1->doSomething();
-    
-    vector<Wall*>::iterator it;
-    it = walls.begin();
-    for (; it != walls.end(); it++) {
-        (*it)->doSomething();
+    vector<Actor*>::iterator itr;
+    itr = actors.begin();
+    for (; itr != actors.end(); itr++) {
+        (*itr)->doSomething();
+        if ((*itr)->getID() == 'X' && (*itr)->overlaps(p1)) {
+            return GWSTATUS_FINISHED_LEVEL;
+        }
     }
- 
-    // This code is here merely to allow the game to build, run, and terminate after you hit enter.
-    // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
+    
+    p1->doSomething();
+    
     //decLives();
-    return GWSTATUS_CONTINUE_GAME;; //change back to died later
+    return GWSTATUS_CONTINUE_GAME; //change back to died later
 }
 
 void StudentWorld::cleanUp()
 {
-    vector<Wall*>::iterator it;
-    it = walls.begin();
-    for (; it != walls.end(); it++) {
-        delete *it;
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    for (; it != actors.end(); it++) {
+        delete (*it);
     }
+    actors.clear();
+
     delete p1;
-    
-//    delete test;
-    
 }
 
 void StudentWorld::getLevelString(string levelFile)
@@ -92,6 +116,7 @@ void StudentWorld::getLevelString(string levelFile)
     else if (result == Level::load_success)
     {
         cerr << "Successfully loaded level" << endl;
+        cerr << "Level: " << getLevel() << endl;
         
         oss.fill('0');
         int x = 0;
@@ -102,8 +127,47 @@ void StudentWorld::getLevelString(string levelFile)
                 ge = lev.getContentsOf(x,y); // level_x=5, level_y=10
                 switch (ge) // so x=80 and y=160
                 {
+                    case Level::landmine_goodie:
+                        cout << "Location " << x << "," << y << " starts with a landmine goodie" << endl;
+                        oss << "L";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::gas_can_goodie:
+                        cout << "Location " << x << "," << y << " starts with a gas can goodie" << endl;
+                        oss << "G";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::vaccine_goodie:
+                        cout << "Location " << x << "," << y << " starts with a vaccine goodie" << endl;
+                        oss << "V";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::citizen:
+                        cout << "Location " << x << "," << y << " starts with a citizen" << endl;
+                        oss << "C";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::dumb_zombie:
+                        cout << "Location " << x << "," << y << " starts with a dumb zombie" << endl;
+                        oss << "D";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::smart_zombie:
+                        cout << "Location " << x << "," << y << " starts with a smart zombie" << endl;
+                        oss << "S";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::exit:
+                        cout << "Location " << x << "," << y << " is where an exit is" << endl;
+                        oss << "X";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
+                    case Level::pit:
+                        cout << "Location " << x << "," << y << " has a pit in the ground" << endl;
+                        oss << "O";
+                        oss << setw(2) << x << setw(2) << y;
+                        break;
                     case Level::empty:
-                        //cout << "Location " << x << "," << y << " is empty" << endl;
                         break;
                     case Level::wall:
                         cout << "Location " << x << "," << y << " holds a Wall" << endl;
@@ -112,30 +176,11 @@ void StudentWorld::getLevelString(string levelFile)
                         break;
                     case Level::player:
                         cout << "Location " << x << "," << y << " is where Penelope starts" << endl;
-                        //y = 7;
                         oss << "@";
                         oss << setw(2) << x << setw(2) << y;
-                        
-                        string s = oss.str();
-                        cout << s << endl;
                         break;
-//                    case Level::smart_zombie:
-//                        cout << "Location " << x << "," << y << " starts with a smart zombie" << endl;
-//                        break;
-//                    case Level::dumb_zombie:
-//                        cout << "Location " << x << "," << y << " starts with a dumb zombie" << endl;
-//                        break;
-//
-//                    case Level::exit:
-//                        cout << "Location " << x << "," << y << " is where an exit is" << endl;
-//                        break;
-//                    case Level::pit:
-//                        cout << "Location " << x << "," << y << " has a pit in the ground" << endl;
-//                        break;
-                        // etc…
-                        
                 }
-        
+                
             }
         }
     }
@@ -146,31 +191,19 @@ int StudentWorld::getInt(string s){
 }
 
 bool StudentWorld::isInWall(int x, int y){
-    vector<Wall*>::iterator it;
-    it = walls.begin();
-    for (; it != walls.end(); it++) {
-        int startX = (*it)->getX(), startY = (*it)->getY();
-        //
-      
-        if ((p1->getDirection() == p1->left || p1->getDirection() == p1->down) && x >= startX && x <= startX + SPRITE_WIDTH - 1 && y >= startY && y <= startY + SPRITE_HEIGHT - 1)
-            return true;
-        else if ((p1->getDirection() == p1->right || p1->getDirection() == p1->up) && x + SPRITE_WIDTH - 1 >= startX && x <= startX  && y + SPRITE_HEIGHT - 1 >= startY && y <= startY)
-            return true;
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    for (; it != actors.end(); it++) {
+        if ((*it)->getID() == '#') {
+            int startX = (*it)->getX(), startY = (*it)->getY();
+            
+            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT)
+                return true;
+        }
         
-//        if ((p1->getDirection() == p1->right || p1->getDirection() == p1->left) && x >= startX && x <= startX + SPRITE_WIDTH - 1)
-//            return true;
-//        else if ((p1->getDirection() == p1->up || p1->getDirection() == p1->down ) && y >= startY && y <= startY + SPRITE_HEIGHT - 1)
-//            return true;
-        
-        
-//        if ( x >= startX && x <= startX + SPRITE_WIDTH - 1 && y >= startY && y <= startY + SPRITE_HEIGHT - 1 || x < startX && x > startX + SPRITE_WIDTH - 1 && y < startY && y > startY + SPRITE_HEIGHT - 1 )
-//            return true;
-//        else if (p1->getDirection() == p1->right)
-//            return true;
-//        else if (p1->getDirection() == p1->up )
-//            return true;
-//        else if (p1->getDirection() == p1->down )
-//            return true;
+    
     }
     return false;
 }
+
+

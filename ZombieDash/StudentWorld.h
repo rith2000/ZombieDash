@@ -19,12 +19,14 @@ public:
     virtual int move();
     virtual void cleanUp();
     bool isInWall(int x, int y);
+    void changeLevel();
 
 private:
     std::vector<Actor*> actors;
-    std::vector<Wall*> walls;
-    std::stringstream oss;
+    //std::vector<Wall*> walls;
+    std::stringstream oss, oss2;
     Penelope* p1;
+    //std::vector<Exit*> exits;
     int getInt(std::string s);
 //    Actor* test;
 };
