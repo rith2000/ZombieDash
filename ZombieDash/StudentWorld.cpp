@@ -80,13 +80,36 @@ int StudentWorld::move()
     vector<Actor*>::iterator itr;
     itr = actors.begin();
     for (; itr != actors.end(); itr++) {
-        (*itr)->doSomething();
-        if ((*itr)->getID() == 'X' && (*itr)->overlaps(p1)) {
-            return GWSTATUS_FINISHED_LEVEL;
+        if ((*itr)->isAlive()) {
+            (*itr)->doSomething();
+            if (!p1->isAlive())
+                return GWSTATUS_PLAYER_DIED;
+            if (overlapsWithA(*itr, p1)) {
+                return GWSTATUS_FINISHED_LEVEL;
+            }
         }
+        
     }
     
     p1->doSomething();
+    
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    for (; it != actors.end();) {
+        if (!(*it)->isAlive()) {
+            delete *it;
+            it = actors.erase(it);
+        }else
+            it++;
+        
+    }
+    //for
+    stringstream s;
+    s.fill(' ');
+    s << "Score: " << setw(2) << "idk yet lolzzz";
+    
+    
+    setGameStatText(s.str());
     
     //decLives();
     return GWSTATUS_CONTINUE_GAME; //change back to died later
@@ -190,20 +213,172 @@ int StudentWorld::getInt(string s){
     return (s[1] - '0') + 10*(s[0] - '0');
 }
 
-bool StudentWorld::isInWall(int x, int y){
+
+
+double StudentWorld::distToPenelope(Actor* a){
+    return sqrt(pow(a->getX() - p1->getX(),2) + pow(a->getY() - p1->getY(),2));
+}
+double StudentWorld::distToZombie(Actor * a){
+    int min = -1;
     vector<Actor*>::iterator it;
     it = actors.begin();
+    double dist;
     for (; it != actors.end(); it++) {
-        if ((*it)->getID() == '#') {
-            int startX = (*it)->getX(), startY = (*it)->getY();
-            
-            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT)
-                return true;
-        }
+        dist = sqrt(pow(a->getX() - (*it)->getX(),2) + pow(a->getY() - (*it)->getY(),2));
         
-    
+        if (min == -1 || dist < min ) {
+            min = dist;
+        }
     }
+    
+    return min;
+    
+}
+
+// Return true if there is a living zombie or Penelope, otherwise false.
+// If true, otherX, otherY, and distance will be set to the location and
+// distance of the one nearest to (x,y), and isThreat will be set to true
+// if it's a zombie, false if a Penelope.
+bool StudentWorld::locateNearestCitizenTrigger(double x, double y, double& otherX, double& otherY, double& distance, bool& isThreat) {
+    if (p1->isAlive() || locateNearestCitizenThreat(x, y, otherX, otherY, distance)) {
+        double distP = sqrt(pow(x - p1->getX(),2) + pow(y - p1->getY(),2));
+        if (distP < distance) {
+            otherX = p1->getX();
+            otherY = p1->getY();
+            distance = distP;
+            isThreat = false;
+        } else
+            isThreat = true;
+        return true;
+    }
+
     return false;
 }
 
+// Return true if there is a living zombie, false otherwise.  If true,
+// otherX, otherY and distance will be set to the location and distance
+// of the one nearest to (x,y).
+bool StudentWorld::locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) {
+    vector<Actor*>::iterator it;
+    distance = -1;
+    it = actors.begin();
+    bool b = false;
+    for (; it != actors.end(); it++) {
+        if ((*it)->threatensCitizens() && (*it)->isAlive()) {
+            b = true;
+            double dist = sqrt(pow(x - (*it)->getX(),2) + pow(y - (*it)->getY(),2));
+            if (distance == -1 || dist < distance){
+                distance = dist;
+                otherX = (*it)->getX();
+                otherY = (*it)->getY();
+                //cout << "zombie at " << x << ", " << y << endl;
+            }
+            
+        }
+    }
+    return b;
+}
 
+bool StudentWorld::overlapsWithA(Actor* a, Actor *b){
+    return (pow(a->getX() - b->getX(), 2) + pow(a->getY() - b->getY(), 2) <= 100);
+}
+
+bool StudentWorld::overlapsWithA(int x, int y, int otherX, int otherY){
+    return (pow(x - otherX, 2) + pow(y - otherY, 2) <= 100);
+}
+
+void StudentWorld::addActor(Actor* a){
+    actors.push_back(a);
+}
+
+bool StudentWorld::isAgentMovementBlockedAt(Actor*a, double x, double y) {
+    
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    int startX, startY;
+    for (; it != actors.end(); it++) {
+        if ((*it)->blocksMovement() && (a->getX()!= (*it)->getX() || a->getY() != (*it)->getY())) {
+            startX = (*it)->getX();
+            startY = (*it)->getY();
+            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT){
+                return true;
+            }
+        }
+    }
+    //how to check that something doesn't block itself
+    startX = p1->getX();
+    startY = p1->getY();
+    if (a->getX()!= p1->getX() || a->getY() != p1->getY())
+        if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT)
+            return true;
+
+    return false;
+}
+
+bool StudentWorld::isZombieVomitTriggerAt(double x, double y, int dir){
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    int X, Y;
+    for (; it != actors.end(); it++) {
+        if ((*it)->triggersZombieVomit() && (*it)->isAlive()) {
+            X = (*it)->getX();
+            Y = (*it)->getY();
+            if ((dir == Actor::right && X == x + 1) || (dir == Actor::left && X == x - 1) || (dir == Actor::up && Y == y + 1) || (dir == Actor::down && Y == y -1))
+                return true;
+           
+        }
+    }
+    return false;
+        
+}
+
+// Return true if there is a living human, otherwise false.  If true,
+// otherX, otherY, and distance will be set to the location and distance
+// of the human nearest to (x,y).
+bool StudentWorld::locateNearestVomitTrigger(double x, double y, double& otherX, double& otherY, double& distance){
+    vector<Actor*>::iterator it;
+    distance = -1;
+    it = actors.begin();
+    bool b = false;
+    for (; it != actors.end(); it++) {
+        if ((*it)->triggersZombieVomit() && (*it)->isAlive()) {
+            b = true;
+            double dist = sqrt(pow(x - (*it)->getX(),2) + pow(y - (*it)->getY(),2));
+            if (distance == -1 || dist < distance){
+                distance = dist;
+                otherX = (*it)->getX();
+                otherY = (*it)->getY();
+            }
+            
+        }
+    }
+    return b;
+}
+
+
+// For each actor overlapping a, activate a if appropriate.
+void StudentWorld::activateOnAppropriateActors(Actor* a){
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    for (; it != actors.end(); it++) {
+        if (!(*it)->blocksFlame() && (*it)->isAlive() && overlapsWithA(a, *it))
+            (*it)->setDead();
+    }
+}
+
+// Is creation of a flame blocked at the indicated location?
+bool StudentWorld::isFlameBlockedAt(double x, double y) {
+//    vector<Actor*>::iterator it;
+//    it = actors.begin();
+//    int startX, startY;
+//    for (; it != actors.end(); it++) {
+//        if ((*it)->blocksMovement() && (a->getX()!= (*it)->getX() || a->getY() != (*it)->getY())) {
+//            startX = (*it)->getX();
+//            startY = (*it)->getY();
+//            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT){
+//                return true;
+//            }
+//        }
+//    }
+    return 0;
+}

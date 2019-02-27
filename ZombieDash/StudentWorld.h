@@ -18,8 +18,52 @@ public:
     virtual int init();
     virtual int move();
     virtual void cleanUp();
-    bool isInWall(int x, int y);
     void changeLevel();
+    bool overlapsWithA(Actor* a, Actor *b);
+    double distToPenelope(Actor* a);
+    double distToZombie(Actor * a);
+    bool overlapsWithA(int x, int y, int otherX, int otherY);
+    
+    
+    // Add an actor to the world.
+    void addActor(Actor* a);
+    
+    // Record that one more citizen on the current level is gone (exited,
+    // died, or turned into a zombie).
+    void recordCitizenGone();
+    
+    // Indicate that the player has finished the level if all citizens
+    // are gone.
+    void recordLevelFinishedIfAllCitizensGone();
+    
+    // For each actor overlapping a, activate a if appropriate.
+    void activateOnAppropriateActors(Actor* a);
+    
+    // Is an agent blocked from moving to the indicated location? //is supposed to be const???
+    bool isAgentMovementBlockedAt(Actor* a, double x, double y) ;
+    
+    // Is creation of a flame blocked at the indicated location?
+    bool isFlameBlockedAt(double x, double y) ;
+    
+    // Is there something at the indicated location that might cause a
+    // zombie to vomit (i.e., a human)?
+    bool isZombieVomitTriggerAt(double x, double y, int dir) ;
+    
+    // Return true if there is a living human, otherwise false.  If true,
+    // otherX, otherY, and distance will be set to the location and distance
+    // of the human nearest to (x,y).
+    bool locateNearestVomitTrigger(double x, double y, double& otherX, double& otherY, double& distance);
+    
+    // Return true if there is a living zombie or Penelope, otherwise false.
+    // If true, otherX, otherY, and distance will be set to the location and
+    // distance of the one nearest to (x,y), and isThreat will be set to true
+    // if it's a zombie, false if a Penelope.
+    bool locateNearestCitizenTrigger(double x, double y, double& otherX, double& otherY, double& distance, bool& isThreat) ;
+    
+    // Return true if there is a living zombie, false otherwise.  If true,
+    // otherX, otherY and distance will be set to the location and distance
+    // of the one nearest to (x,y).
+    bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) ;
 
 private:
     std::vector<Actor*> actors;
