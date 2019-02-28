@@ -13,7 +13,7 @@ class StudentWorld : public GameWorld
 {
 public:
     StudentWorld(std::string assetPath);
-    void getLevelString(std::string levelFile);
+    //void getLevelString(std::string levelFile);
     virtual ~StudentWorld();
     virtual int init();
     virtual int move();
@@ -37,6 +37,7 @@ public:
     void recordLevelFinishedIfAllCitizensGone();
     
     // For each actor overlapping a, activate a if appropriate.
+    
     void activateOnAppropriateActors(Actor* a);
     
     // Is an agent blocked from moving to the indicated location? //is supposed to be const???
@@ -65,6 +66,11 @@ public:
     // of the one nearest to (x,y).
     bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) ;
     
+    void activate(Goodie* a);
+    
+    void addFlames(int x);
+    void addVaccines(int x);
+    void addLandmines(int x);
     
 
 private:
@@ -75,6 +81,11 @@ private:
     //std::vector<Exit*> exits;
     int getInt(std::string s);
     bool overlaps(double x, double y);
+    int numCitizens;
+    bool LevelComplete;
+    bool isCleanedUp;
+    bool isGameAlreadyWon;
+    
 //    Actor* test;
 };
 

@@ -57,6 +57,16 @@ bool Actor::paralysis() {return false; }
 bool Actor::blocksFlame() const{ return false;}
 void Actor::beVomitedOnIfAppropriate() { };
 bool Actor::infects(){ return false;}
+bool Actor::kills() { return false;}
+void Actor::dieByFallOrBurnIfAppropriate(){}
+bool Actor::exits(){ return false;}
+bool Actor::pickup(){ return false;}
+void Actor::pickUpGoodieIfAppropriate(Goodie* g){}
+bool Actor::blowsup(){ return false;}
+void Actor::explode(){}
+
+
+
 
 
     
@@ -78,65 +88,129 @@ void ActivatingObject::doSomething(){ Actor::doSomething();}
 
 //EXIT
 Exit::Exit(int startX, int startY, StudentWorld* src): ActivatingObject(IID_EXIT, startX, startY, src, right, 1){}
-void Exit::doSomething(){ActivatingObject::doSomething();}
+void Exit::doSomething(){
+    ActivatingObject::doSomething();
+    getWorld()->activateOnAppropriateActors(this);
+}
 bool Exit::blocksFlame() const{ return true;}
+bool Exit::exits(){ return true;}
 
 //PIT
 Pit::Pit(int startX, int startY, StudentWorld* src): ActivatingObject(IID_PIT, startX, startY, src, right, 0){}
-void Pit::doSomething(){ ActivatingObject::doSomething();}
+bool Pit::kills(){
+    return true;
+}
+void Pit::doSomething(){
+    ActivatingObject::doSomething();
+    getWorld()->activateOnAppropriateActors(this);
+    
+}
 
 //FLAME
 Flame::Flame(int startX, int startY, StudentWorld* src, int dir): ActivatingObject(IID_FLAME, startX, startY, src, dir, 0){}
 void Flame::doSomething(){
     ActivatingObject::doSomething();
     
+    getWorld()->activateOnAppropriateActors(this);
     incTick();
     if (getTickCount() == 2) {
         setDead();
     }
-    
-    
+}
+bool Flame::kills(){
+    return true;
 }
 
 //VOMIT
 Vomit::Vomit(int startX, int startY, StudentWorld* src, int dir): ActivatingObject(IID_VOMIT, startX, startY, src, dir, 0){}
 
 void Vomit::doSomething(){
-    ActivatingObject::doSomething();
-//    if (!isAlive())
-//        return;
+    ActivatingObject::doSomething();                                            
+    getWorld()->activateOnAppropriateActors(this);
     incTick();
     if (getTickCount() == 2) {
         setDead();
     }
-    getWorld()->activateOnAppropriateActors(this);
+    
 }
 bool Vomit::infects(){ return true;}
 
 
 //LANDMINE
-Landmine::Landmine(int startX, int startY, StudentWorld* src): ActivatingObject(IID_LANDMINE, startX, startY, src, right, 1){}
+Landmine::Landmine(int startX, int startY, StudentWorld* src): ActivatingObject(IID_LANDMINE, startX, startY, src, right, 1){ active = false; ticks = 30;}
 
-void Landmine::doSomething(){ ActivatingObject::doSomething();}
+void Landmine::doSomething(){
+    ActivatingObject::doSomething();
+    if (!active) {
+        ticks--;
+        if (ticks == 0)
+            active = true;
+        return;
+    }
+    
+    getWorld()->activateOnAppropriateActors(this);
+    
+   
+}
+bool Landmine::blowsup(){ return true;}
+void Landmine::explode(){
+    
+    getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
+    getWorld()->addActor(new Flame(getX(), getY(), getWorld(), up));
+    
+    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY(), getWorld(), up));
+    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH, getY(), getWorld(), up));
+    getWorld()->addActor(new Flame(getX(), getY() + SPRITE_HEIGHT, getWorld(), up));
+    getWorld()->addActor(new Flame(getX(), getY() - SPRITE_HEIGHT, getWorld(), up));
+    
+    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY() + SPRITE_HEIGHT, getWorld(), up));
+    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY() - SPRITE_HEIGHT, getWorld(), up));
+    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH, getY() + SPRITE_HEIGHT, getWorld(), up));
+    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH
+                                   , getY() - SPRITE_HEIGHT, getWorld(), up));
+    
+    
+    
+    
+    
+    
+    getWorld()->addActor(new Pit(getX(), getY(), getWorld()));
+    setDead();
+}
+
+
 
 //GOODIE
 Goodie::Goodie(int imageID, int startX, int startY, StudentWorld* src): ActivatingObject(imageID, startX, startY, src, right, 1){}
-void Goodie::doSomething(){ActivatingObject::doSomething();}
+void Goodie::doSomething(){
+    ActivatingObject::doSomething();
+    //getWorld()->activateOnAppropriateActors(this);
+    getWorld()->activate(this);
+}
+void Goodie::dieByFallOrBurnIfAppropriate(){ setDead();}
+bool Goodie::pickup() { return true;}
+void Goodie::dosage(){}
+
+
+
 
 //VACCINEGOODIE
 VaccineGoodie::VaccineGoodie(int startX, int startY, StudentWorld* src): Goodie(IID_VACCINE_GOODIE, startX, startY, src){}
-
-void VaccineGoodie::doSomething(){Goodie::doSomething();}
+void VaccineGoodie::doSomething(){Goodie::doSomething();
+}
+void VaccineGoodie::dosage(){ getWorld()->addVaccines(1);}
 
 //GASCANGOODIE
 GasCanGoodie::GasCanGoodie(int startX, int startY, StudentWorld* src): Goodie(IID_GAS_CAN_GOODIE, startX, startY, src){}
 
 void GasCanGoodie::doSomething(){Goodie::doSomething();}
+void GasCanGoodie::dosage(){ getWorld()->addFlames(5);}
 
 //LANDMINEGOODIE
 LandmineGoodie::LandmineGoodie(int startX, int startY, StudentWorld* src): Goodie(IID_LANDMINE_GOODIE, startX, startY, src){}
 
 void LandmineGoodie::doSomething(){Goodie::doSomething();}
+void LandmineGoodie::dosage(){ getWorld()->addLandmines(2);}
 
 
 //AGENTS
@@ -164,9 +238,8 @@ bool Agent::moveDirBy(int dir, int amt){
     } else if (dir == down){
         amty = -amt;
     }
-    
+    setDirection(dir);
         if (!getWorld()->isAgentMovementBlockedAt(this, getX() + amtx, getY() + amty)) {
-            setDirection(dir);
             moveTo(getX() + amtx, getY() + amty);
             return true;
         }
@@ -176,6 +249,7 @@ bool Agent::moveDirBy(int dir, int amt){
 }
 bool Agent::blocksMovement() const{ return true;}
 bool Agent::paralysis(){ return true;}
+void Agent::dieByFallOrBurnIfAppropriate() { setDead();}
 
 int Agent::closerToTarget(int otherX, int otherY){
     if (getX() == otherX){
@@ -192,17 +266,15 @@ int Agent::closerToTarget(int otherX, int otherY){
         
         int d1, d2;
         
-        if (otherX > getX()){
+        if (otherX > getX())
             d1 = right;
-        }else if (otherX < getX()){
+        else
             d1 = left;
-        }
-        
-        if (otherY > getY()){
+
+        if (otherY > getY())
             d2 = up;
-        }else if (otherY < getY()){
+        else
             d2 = down;
-        }
         
         if (randInt(0,1))
             setDirection(d1);
@@ -216,17 +288,35 @@ int Agent::closerToTarget(int otherX, int otherY){
 //HUMAN
 
 Human::Human(int imageID, int startX, int startY, StudentWorld* src): Agent(imageID, startX, startY, src){ infectionCount = 0; isInfected = false;}
-void Human::doSomething(){Agent::doSomething();}
+void Human::doSomething(){
+    Agent::doSomething();
+    //useExitIfAppropriate();
+}
 bool Human::getInfectionStatus(){return isInfected;}
 int Human::getInfectionCount(){return infectionCount;}
 void Human::incInfectionCount(){ infectionCount++;}
 void Human::setInfectionStatus(bool b) { isInfected = b;}
 void Human::useExitIfAppropriate() { };
 bool Human::triggersZombieVomit() const { return true;}
-void Human::beVomitedOnIfAppropriate() {isInfected = true; cout << "wtffff man " << endl;}
+void Human::beVomitedOnIfAppropriate() {isInfected = true;}
+void Human::zeroInfectionCount() { infectionCount = 0;}
+
+
 
 //CITIZEN
 Citizen::Citizen(int startX, int startY, StudentWorld* src): Human(IID_CITIZEN, startX, startY, src){}
+void Citizen::useExitIfAppropriate(){
+    getWorld()->increaseScore(500);
+    setDead();
+    getWorld()->recordCitizenGone(); //also if turns into zombie
+    getWorld()->playSound(SOUND_CITIZEN_SAVED);
+}
+void Citizen::dieByFallOrBurnIfAppropriate(){
+    Agent::dieByFallOrBurnIfAppropriate();
+    getWorld()->increaseScore(-1000);
+    getWorld()->recordCitizenGone();
+    getWorld()->playSound(SOUND_CITIZEN_DIE);
+}
 
 //probably not correct
 void Citizen::doSomething(){
@@ -234,13 +324,13 @@ void Citizen::doSomething(){
     if (getTickCount() % 2 == 0)
         return;
     if (getInfectionStatus()) {
-        cout << "HELLLOOOO IS ANYONE THEREEE" <<
-        endl;
+        getWorld()->playSound(SOUND_CITIZEN_INFECTED);
         incInfectionCount();
         if (getInfectionCount() == 500) {
             setDead();
             getWorld()->playSound(SOUND_ZOMBIE_BORN);
             getWorld()->increaseScore(-1000);
+            getWorld()->recordCitizenGone();
             int a = randInt(0, 99);
             if (a < 70)
                 getWorld()->addActor(new DumbZombie(getX(), getY(), getWorld()));
@@ -265,6 +355,7 @@ void Citizen::doSomething(){
        
      else if (isThreat && distance <= 80){
         double dist1 = 0, dist2 = 0, dist3 = 0, dist4 = 0;
+      
         if (!getWorld()->isAgentMovementBlockedAt(this, getX() + 2, getY()))
             getWorld()->locateNearestCitizenThreat(getX() + 2, getY(), x, y, dist1);
         else if (!getWorld()->isAgentMovementBlockedAt(this, getX() - 2, getY()))
@@ -274,22 +365,26 @@ void Citizen::doSomething(){
         else if (!getWorld()->isAgentMovementBlockedAt(this, getX(), getY() - 2))
             getWorld()->locateNearestCitizenThreat(getX(), getY() - 2, x, y, dist4);
 
-        int max1 = max(dist1, dist2);
-        int max2 = max(dist3, dist4);
-        int totalMax = max(max1, max2);
+        double max1 = max(dist1, dist2);
+        double max2 = max(dist3, dist4);
+        double totalMax = max(max1, max2);
 
         if (totalMax > distance){
             //go in that direction
             if (totalMax == dist1){
+                cout << "right?" << endl;
                 setDirection(right);
                 moveTo(getX() + 2, getY());
             }else if (totalMax == dist2){
+                cout << "left?" << endl;
                 setDirection(left);
                 moveTo(getX() - 2, getY());
             }else if (totalMax == dist3){
+                cout << "up?" << endl;
                 setDirection(up);
                 moveTo(getX(), getY() + 2);
             }else if (totalMax == dist4){
+                cout << "down?" << endl;
                 setDirection(down);
                 moveTo(getX(), getY() - 2);
             }
@@ -303,7 +398,6 @@ void Citizen::doSomething(){
 }
 
 //PENELOPE
-//CHECK CAN'T SWITCH SIDE DIRECTIONS 
 Penelope::Penelope(int startX, int startY, StudentWorld* src): Human(IID_PLAYER, startX, startY, src){
     vaccineCount = 3;
     flameCount = 3;
@@ -312,12 +406,28 @@ Penelope::Penelope(int startX, int startY, StudentWorld* src): Human(IID_PLAYER,
 bool Penelope::triggersCitizens() const{ return true;}
 bool Penelope::paralysis(){ return false;}
 void Penelope::beVomitedOnIfAppropriate(){ Human::beVomitedOnIfAppropriate();}
+void Penelope::useExitIfAppropriate(){
+    getWorld()->recordLevelFinishedIfAllCitizensGone();
+}
+void Penelope::pickUpGoodieIfAppropriate(Goodie* g){
+    getWorld()->increaseScore(50);
+    getWorld()->playSound(SOUND_GOT_GOODIE);
+    g->setDead();
+    g->dosage();
+}
+void Penelope::addFlameCount(int x){ flameCount+= x;}
+void Penelope::addVaccineCount(int x){ vaccineCount+= x;}
+void Penelope::addLandMineCount(int x){ landmineCount += x;}
+int Penelope::getFlameCount(){ return flameCount;}
+int Penelope::getVaccineCount() { return vaccineCount;}
+int Penelope::getLandMineCount() { return landmineCount;}
+void Penelope::dieByFallOrBurnIfAppropriate(){ Agent::dieByFallOrBurnIfAppropriate(); getWorld()->playSound(SOUND_PLAYER_DIE);}
+
+
 void Penelope::doSomething(){
     Human::doSomething();
-    
+    //if not alive, play soundPlayer died 
     if (getInfectionStatus() == true) {
-        cout << "hi " << endl;
-        //DOESN'T GO IN HERE WHYYYY
         incInfectionCount();
         if (getInfectionCount() == 500) {
             //turn into zombie
@@ -380,6 +490,8 @@ void Penelope::doSomething(){
             case KEY_PRESS_ENTER:
                 if (vaccineCount > 0) {
                     vaccineCount--;
+                    zeroInfectionCount();
+                    
                     setInfectionStatus(false);
                 }
                 break;
@@ -401,7 +513,6 @@ void Zombie::doSomething(){
     if (getTickCount() % 2 == 0)
         return;
 
-    
     //EUCLIDEAN DISTANCE should be 10???
     bool b = false;
     if (getDirection() == right)
@@ -413,12 +524,13 @@ void Zombie::doSomething(){
     else if (getDirection() == down)
          b = getWorld()->isZombieVomitTriggerAt(getX(), getY() - 4);
     
-    //cout << "b: " << b << endl;
     if (b){
-        double vx, vy;
+        double vx, vy, otherX, otherY, dist;
         getVomitCoords(vx, vy);
         int random = randInt(1, 3);
+        getWorld()->locateNearestVomitTrigger(getX(), getY(), otherX, otherY, dist);
         if (random == 1){
+           
             getWorld()->addActor(new Vomit(vx, vy, getWorld(), getDirection()));
             getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
         }
@@ -432,9 +544,8 @@ void Zombie::doSomething(){
     else
         mvplanDist = 0;
     
-    
-    
 }
+
 void Zombie::getVomitCoords(double &x, double &y) const{
     double xchange = 0;
     double ychange = 0;
@@ -449,9 +560,7 @@ void Zombie::getVomitCoords(double &x, double &y) const{
     
     x = getX() + xchange;
     y = getY() + ychange;
-    
-    
-    
+
 }
 bool Zombie::threatensCitizens() const{ return true;}
 
@@ -462,6 +571,26 @@ void DumbZombie::MvPlan(){
     setmvplanDist(randInt(3, 10));
     setDirection(randInt(0, 3) * 90);
 }
+void DumbZombie::dieByFallOrBurnIfAppropriate(){
+    Agent::dieByFallOrBurnIfAppropriate();
+    getWorld()->playSound(SOUND_ZOMBIE_DIE);
+    
+    if (true/*randInt(1, 9) == 1*/) {
+        int random = randInt(0,3) * 90;
+        int px = 0, py = 0;
+        if (random == right || random == left){
+            cout << "right/left " << random << endl;
+            px = SPRITE_WIDTH;
+        } else{
+            py = SPRITE_HEIGHT;
+            cout << "up/down " << random << endl;
+        }
+        //CHECK IF BLOCKED
+        getWorld()->addActor(new VaccineGoodie(getX() + px, getY() + py, getWorld()));
+    }
+    getWorld()->increaseScore(1000);
+}
+
 
 //SMART
 SmartZombie::SmartZombie(int startX, int startY, StudentWorld* src): Zombie(IID_ZOMBIE, startX, startY, src){}
@@ -476,6 +605,12 @@ void SmartZombie::MvPlan(){
         closerToTarget(otherX, otherY);
     }
 }
+void SmartZombie::dieByFallOrBurnIfAppropriate(){
+    Agent::dieByFallOrBurnIfAppropriate();
+    getWorld()->playSound(SOUND_ZOMBIE_DIE);
+    getWorld()->increaseScore(2000);
+}
+
 
 
 

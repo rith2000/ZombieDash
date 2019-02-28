@@ -23,6 +23,13 @@ public:
     int getTickCount();
     void incTick();
     virtual bool infects();
+    virtual bool kills();
+    virtual bool exits();
+    virtual bool pickup();
+    virtual bool blowsup();
+    virtual void explode();
+
+
 
     
     // If this is an activated object, perform its effect on a (e.g., for an
@@ -51,19 +58,16 @@ public:
         // If this object can be infected by vomit, get infected.
         virtual void beVomitedOnIfAppropriate();
 //
-//    // If this object can die by falling into a pit or burning, die.
-//    virtual void dieByFallOrBurnIfAppropriate();
-//
-
-//
-//    // If this object can pick up goodies, pick up g
-//    virtual void pickUpGoodieIfAppropriate(Goodie* g);
+    // If this object can die by falling into a pit or burning, die.
+    virtual void dieByFallOrBurnIfAppropriate();
 //
 
 
-//
-//    // Does this object trigger landmines only when they're active?
-//    virtual bool triggersOnlyActiveLandmines() const;
+    // If this object can pick up goodies, pick up g
+    virtual void pickUpGoodieIfAppropriate(Goodie* g);
+
+    // Does this object trigger landmines only when they're active?
+    //virtual bool triggersOnlyActiveLandmines();
 //
 
 //
@@ -101,6 +105,7 @@ public:
     Exit(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
     virtual bool blocksFlame() const;
+    virtual bool exits();
     
 };
 
@@ -108,6 +113,7 @@ class Pit: public ActivatingObject {
 public:
     Pit(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual bool kills();
     
 };
 
@@ -115,6 +121,7 @@ class Flame: public ActivatingObject {
 public:
     Flame(int startX, int startY, StudentWorld* src, int dir);
     virtual void doSomething();
+    virtual bool kills();
     
 };
 
@@ -130,6 +137,11 @@ class Landmine: public ActivatingObject {
 public:
     Landmine(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual bool blowsup();
+    virtual void explode();
+private:
+    bool active;
+    int ticks;
     
 };
 
@@ -137,6 +149,10 @@ class Goodie: public ActivatingObject {
 public:
     Goodie(int imageID, int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual void dieByFallOrBurnIfAppropriate();
+    virtual bool pickup();
+    virtual void dosage();
+
     
 };
 
@@ -144,6 +160,7 @@ class VaccineGoodie: public Goodie {
 public:
     VaccineGoodie(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual void dosage();
     
 };
 
@@ -151,6 +168,7 @@ class GasCanGoodie: public Goodie {
 public:
     GasCanGoodie(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual void dosage();
     
 };
 
@@ -158,6 +176,7 @@ class LandmineGoodie: public Goodie {
 public:
     LandmineGoodie(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual void dosage();
     
 };
 
@@ -175,6 +194,8 @@ public:
     virtual bool moveDirBy(int dir, int amt);
     virtual bool paralysis();
     virtual int closerToTarget( int otherX, int otherY);
+    virtual void dieByFallOrBurnIfAppropriate();
+
     
 private:
     
@@ -189,6 +210,7 @@ private:
         bool getInfectionStatus();
         int getInfectionCount();
         void incInfectionCount();
+        void zeroInfectionCount();
         void setInfectionStatus(bool b);
         virtual void useExitIfAppropriate();
         virtual bool triggersZombieVomit() const;
@@ -208,6 +230,17 @@ private:
             virtual bool triggersCitizens() const;
             virtual bool paralysis();
             virtual void beVomitedOnIfAppropriate();
+            virtual void useExitIfAppropriate();
+            virtual void pickUpGoodieIfAppropriate(Goodie* g);
+            void addFlameCount(int x);
+            void addVaccineCount(int x);
+            void addLandMineCount(int x);
+            int getFlameCount();
+            int getVaccineCount();
+            int getLandMineCount();
+            virtual void dieByFallOrBurnIfAppropriate();
+
+
             
         private:
             int landmineCount, flameCount, vaccineCount;
@@ -218,6 +251,10 @@ private:
         public:
             Citizen(int startX, int startY, StudentWorld* src);
             virtual void doSomething();
+            virtual void useExitIfAppropriate();
+            virtual void dieByFallOrBurnIfAppropriate();
+
+
             
             
         };
@@ -243,6 +280,8 @@ private:
             DumbZombie(int startX, int startY, StudentWorld* src);
             virtual void doSomething();
             virtual void MvPlan();
+            virtual void dieByFallOrBurnIfAppropriate();
+
             
         };
 
@@ -252,6 +291,8 @@ private:
             SmartZombie(int startX, int startY, StudentWorld* src);
             virtual void doSomething();
             virtual void MvPlan();
+            virtual void dieByFallOrBurnIfAppropriate();
+
             
         };
 
