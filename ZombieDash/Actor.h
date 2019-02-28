@@ -22,6 +22,7 @@ public:
     virtual bool paralysis();
     int getTickCount();
     void incTick();
+    virtual bool infects();
 
     
     // If this is an activated object, perform its effect on a (e.g., for an
@@ -47,8 +48,8 @@ public:
         // Does this object block flames?
         virtual bool blocksFlame() const;
     
-    //    // If this object can be infected by vomit, get infected.
-    //    virtual void beVomitedOnIfAppropriate();
+        // If this object can be infected by vomit, get infected.
+        virtual void beVomitedOnIfAppropriate();
 //
 //    // If this object can die by falling into a pit or burning, die.
 //    virtual void dieByFallOrBurnIfAppropriate();
@@ -82,6 +83,7 @@ public:
     virtual bool overlaps(Actor* a);
     virtual bool isAWall();
     virtual bool blocksMovement() const;
+    virtual bool blocksFlame() const;
     
 };
 
@@ -98,6 +100,7 @@ class Exit: public ActivatingObject {
 public:
     Exit(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
+    virtual bool blocksFlame() const;
     
 };
 
@@ -119,6 +122,7 @@ class Vomit: public ActivatingObject {
 public:
     Vomit(int startX, int startY, StudentWorld* src, int dir);
     virtual void doSomething();
+    virtual bool infects();
     
 };
 
@@ -126,7 +130,6 @@ class Landmine: public ActivatingObject {
 public:
     Landmine(int startX, int startY, StudentWorld* src);
     virtual void doSomething();
-    virtual bool blocksFlame() const;
     
 };
 
@@ -134,7 +137,6 @@ class Goodie: public ActivatingObject {
 public:
     Goodie(int imageID, int startX, int startY, StudentWorld* src);
     virtual void doSomething();
-    virtual bool blocksFlame() const;
     
 };
 
@@ -173,7 +175,6 @@ public:
     virtual bool moveDirBy(int dir, int amt);
     virtual bool paralysis();
     virtual int closerToTarget( int otherX, int otherY);
-    virtual bool blocksFlame() const;
     
 private:
     
@@ -191,6 +192,7 @@ private:
         void setInfectionStatus(bool b);
         virtual void useExitIfAppropriate();
         virtual bool triggersZombieVomit() const;
+        virtual void beVomitedOnIfAppropriate();
         
     private:
         int infectionCount;
@@ -205,6 +207,7 @@ private:
             virtual void doSomething();
             virtual bool triggersCitizens() const;
             virtual bool paralysis();
+            virtual void beVomitedOnIfAppropriate();
             
         private:
             int landmineCount, flameCount, vaccineCount;

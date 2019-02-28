@@ -35,7 +35,7 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
-    oss2 << "level0"  << getLevel() << ".txt";
+    oss2 << "level02"  /*<< getLevel()*/ << ".txt"; //CHANGE L8R
     getLevelString(oss2.str());
     int level_x, level_y;
     string s = oss.str();
@@ -84,9 +84,9 @@ int StudentWorld::move()
             (*itr)->doSomething();
             if (!p1->isAlive())
                 return GWSTATUS_PLAYER_DIED;
-            if (overlapsWithA(*itr, p1)) {
-                return GWSTATUS_FINISHED_LEVEL;
-            }
+//            if (overlapsWithA(*itr, p1)) {
+//                return GWSTATUS_FINISHED_LEVEL;
+//            }
         }
         
     }
@@ -106,7 +106,7 @@ int StudentWorld::move()
     //for
     stringstream s;
     s.fill(' ');
-    s << "Score: " << setw(2) << "idk yet lolzzz";
+    s << "Score: " << setw(2) << "idk yet lolzzz" << "InfectionCount: " << setw(2) << p1->getInfectionCount();
     
     
     setGameStatText(s.str());
@@ -295,41 +295,27 @@ bool StudentWorld::isAgentMovementBlockedAt(Actor*a, double x, double y) {
     
     vector<Actor*>::iterator it;
     it = actors.begin();
-    int startX, startY;
     for (; it != actors.end(); it++) {
-        if ((*it)->blocksMovement() && (a->getX()!= (*it)->getX() || a->getY() != (*it)->getY())) {
-            startX = (*it)->getX();
-            startY = (*it)->getY();
-            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT){
-                return true;
-            }
-        }
+        if ((*it)->blocksMovement() && (a->getX()!= (*it)->getX() || a->getY() != (*it)->getY()))
+             if (overlaps(x - (*it)->getX(), y - (*it)->getY()))
+                 return true;
     }
-    //how to check that something doesn't block itself
-    startX = p1->getX();
-    startY = p1->getY();
     if (a->getX()!= p1->getX() || a->getY() != p1->getY())
-        if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT)
+        if (overlaps(x - p1->getX(), y - p1->getY()))
             return true;
-
     return false;
 }
 
-bool StudentWorld::isZombieVomitTriggerAt(double x, double y, int dir){
+bool StudentWorld::isZombieVomitTriggerAt(double x, double y){
+    
     vector<Actor*>::iterator it;
     it = actors.begin();
-    int X, Y;
     for (; it != actors.end(); it++) {
-        if ((*it)->triggersZombieVomit() && (*it)->isAlive()) {
-            X = (*it)->getX();
-            Y = (*it)->getY();
-            if ((dir == Actor::right && X == x + 1) || (dir == Actor::left && X == x - 1) || (dir == Actor::up && Y == y + 1) || (dir == Actor::down && Y == y -1))
+        if ((*it)->triggersZombieVomit() && (*it)->isAlive())
+            if (overlaps(x - (*it)->getX(), y - (*it)->getY()))
                 return true;
-           
-        }
     }
-    return false;
-        
+    return overlaps(x - p1->getX(), y - p1->getY());
 }
 
 // Return true if there is a living human, otherwise false.  If true,
@@ -361,24 +347,31 @@ void StudentWorld::activateOnAppropriateActors(Actor* a){
     vector<Actor*>::iterator it;
     it = actors.begin();
     for (; it != actors.end(); it++) {
-        if (!(*it)->blocksFlame() && (*it)->isAlive() && overlapsWithA(a, *it))
-            (*it)->setDead();
+        if (a->infects() && overlaps(a->getX() - (*it)->getX(), a->getY() - (*it)->getY())){
+            (*it)->beVomitedOnIfAppropriate();
+            cout << "everything's fine" << endl;
+        }
+        
     }
 }
 
-// Is creation of a flame blocked at the indicated location?
-bool StudentWorld::isFlameBlockedAt(double x, double y) {
-//    vector<Actor*>::iterator it;
-//    it = actors.begin();
-//    int startX, startY;
-//    for (; it != actors.end(); it++) {
-//        if ((*it)->blocksMovement() && (a->getX()!= (*it)->getX() || a->getY() != (*it)->getY())) {
-//            startX = (*it)->getX();
-//            startY = (*it)->getY();
-//            if (abs(x - startX) < SPRITE_WIDTH && abs(y - startY) < SPRITE_HEIGHT){
-//                return true;
-//            }
-//        }
-//    }
-    return 0;
+
+
+bool StudentWorld::isFlameBlockedAt(double x, double y){
+    vector<Actor*>::iterator it;
+    it = actors.begin();
+    for (; it != actors.end(); it++) {
+        if ((*it)->blocksFlame())
+            if (overlaps(x - (*it)->getX(), y - (*it)->getY()))
+                return true;
+    }
+    return false;
+    
 }
+
+bool StudentWorld::overlaps(double x, double y){
+    return abs(x) < SPRITE_WIDTH && abs(y) < SPRITE_HEIGHT;
+}
+
+
+

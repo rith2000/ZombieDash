@@ -55,6 +55,8 @@ bool Actor::threatensCitizens() const { return false;}
 bool Actor::triggersZombieVomit() const { return false;}
 bool Actor::paralysis() {return false; }
 bool Actor::blocksFlame() const{ return false;}
+void Actor::beVomitedOnIfAppropriate() { };
+bool Actor::infects(){ return false;}
 
 
     
@@ -67,6 +69,7 @@ void Wall::doSomething(){}
 bool Wall::overlaps(Actor* a){ return false; }
 bool Wall::isAWall() { return true; }
 bool Wall::blocksMovement() const{ return true;}
+bool Wall::blocksFlame() const{ return true;}
 
 //ACTIVATINGOBJECT
 ActivatingObject::ActivatingObject(int imageID, int startX, int startY, StudentWorld* src, int dir, int depth): Actor(imageID, startX, startY, src, dir, depth){}
@@ -76,6 +79,7 @@ void ActivatingObject::doSomething(){ Actor::doSomething();}
 //EXIT
 Exit::Exit(int startX, int startY, StudentWorld* src): ActivatingObject(IID_EXIT, startX, startY, src, right, 1){}
 void Exit::doSomething(){ActivatingObject::doSomething();}
+bool Exit::blocksFlame() const{ return true;}
 
 //PIT
 Pit::Pit(int startX, int startY, StudentWorld* src): ActivatingObject(IID_PIT, startX, startY, src, right, 0){}
@@ -85,6 +89,13 @@ void Pit::doSomething(){ ActivatingObject::doSomething();}
 Flame::Flame(int startX, int startY, StudentWorld* src, int dir): ActivatingObject(IID_FLAME, startX, startY, src, dir, 0){}
 void Flame::doSomething(){
     ActivatingObject::doSomething();
+    
+    incTick();
+    if (getTickCount() == 2) {
+        setDead();
+    }
+    
+    
 }
 
 //VOMIT
@@ -98,19 +109,19 @@ void Vomit::doSomething(){
     if (getTickCount() == 2) {
         setDead();
     }
+    getWorld()->activateOnAppropriateActors(this);
 }
+bool Vomit::infects(){ return true;}
 
 
 //LANDMINE
 Landmine::Landmine(int startX, int startY, StudentWorld* src): ActivatingObject(IID_LANDMINE, startX, startY, src, right, 1){}
 
 void Landmine::doSomething(){ ActivatingObject::doSomething();}
-bool Landmine::blocksFlame() const{ return true;}
 
 //GOODIE
 Goodie::Goodie(int imageID, int startX, int startY, StudentWorld* src): ActivatingObject(imageID, startX, startY, src, right, 1){}
 void Goodie::doSomething(){ActivatingObject::doSomething();}
-bool Goodie::blocksFlame() const{ return true;}
 
 //VACCINEGOODIE
 VaccineGoodie::VaccineGoodie(int startX, int startY, StudentWorld* src): Goodie(IID_VACCINE_GOODIE, startX, startY, src){}
@@ -165,7 +176,6 @@ bool Agent::moveDirBy(int dir, int amt){
 }
 bool Agent::blocksMovement() const{ return true;}
 bool Agent::paralysis(){ return true;}
-bool Agent::blocksFlame() const{ return true;}
 
 int Agent::closerToTarget(int otherX, int otherY){
     if (getX() == otherX){
@@ -213,6 +223,7 @@ void Human::incInfectionCount(){ infectionCount++;}
 void Human::setInfectionStatus(bool b) { isInfected = b;}
 void Human::useExitIfAppropriate() { };
 bool Human::triggersZombieVomit() const { return true;}
+void Human::beVomitedOnIfAppropriate() {isInfected = true; cout << "wtffff man " << endl;}
 
 //CITIZEN
 Citizen::Citizen(int startX, int startY, StudentWorld* src): Human(IID_CITIZEN, startX, startY, src){}
@@ -223,6 +234,8 @@ void Citizen::doSomething(){
     if (getTickCount() % 2 == 0)
         return;
     if (getInfectionStatus()) {
+        cout << "HELLLOOOO IS ANYONE THEREEE" <<
+        endl;
         incInfectionCount();
         if (getInfectionCount() == 500) {
             setDead();
@@ -290,18 +303,21 @@ void Citizen::doSomething(){
 }
 
 //PENELOPE
+//CHECK CAN'T SWITCH SIDE DIRECTIONS 
 Penelope::Penelope(int startX, int startY, StudentWorld* src): Human(IID_PLAYER, startX, startY, src){
-    vaccineCount = 0;
-    flameCount = 0;
-    landmineCount = 0;
+    vaccineCount = 3;
+    flameCount = 3;
+    landmineCount = 3;
 }
 bool Penelope::triggersCitizens() const{ return true;}
 bool Penelope::paralysis(){ return false;}
+void Penelope::beVomitedOnIfAppropriate(){ Human::beVomitedOnIfAppropriate();}
 void Penelope::doSomething(){
-    
     Human::doSomething();
     
-    if (getInfectionStatus()) {
+    if (getInfectionStatus() == true) {
+        cout << "hi " << endl;
+        //DOESN'T GO IN HERE WHYYYY
         incInfectionCount();
         if (getInfectionCount() == 500) {
             //turn into zombie
@@ -335,20 +351,38 @@ void Penelope::doSomething(){
                     flameCount--;
                     getWorld()->playSound(SOUND_PLAYER_FIRE);
                     double px = 0, py = 0;
-                    for (int i = 0; i < 3; i++) {
-                        getWorld()->addActor(new Flame(getX(), getY(), getWorld(), getDirection()));
+                    for (int i = 1; i <= 3; i++){
+                        
+                        if (getDirection() == right) {
+                            px = i*SPRITE_WIDTH;
+                        } else if (getDirection() == left) {
+                            px = - i*SPRITE_WIDTH;
+                        } else if (getDirection() == up) {
+                            py = i*SPRITE_HEIGHT;
+                        } else if (getDirection() == down) {
+                            py = - i*SPRITE_HEIGHT;
+                        }
+                    
+                        if (getWorld()->isFlameBlockedAt(getX() + px, getY() + py))
+                            break;
+                    getWorld()->addActor(new Flame(getX() + px, getY() + py, getWorld(), getDirection()));
+                        
                     }
-                    //make new flame objects
                 }
+                break;
             case KEY_PRESS_TAB:
                 //add new landmine at penelope's location
-                if (landmineCount > 0)
+                if (landmineCount > 0){
                     landmineCount--;
+                getWorld()->addActor(new Landmine(getX(), getY(), getWorld()));
+                }
+                break;
             case KEY_PRESS_ENTER:
                 if (vaccineCount > 0) {
                     vaccineCount--;
                     setInfectionStatus(false);
                 }
+                break;
             default:
                 break;
         }
@@ -366,28 +400,27 @@ void Zombie::doSomething(){
     Agent::doSomething();
     if (getTickCount() % 2 == 0)
         return;
+
     
-        
+    //EUCLIDEAN DISTANCE should be 10???
+    bool b = false;
+    if (getDirection() == right)
+        b = getWorld()->isZombieVomitTriggerAt(getX() + 4, getY());
+    else if (getDirection() == left)
+        b = getWorld()->isZombieVomitTriggerAt(getX() - 4, getY());
+    else if (getDirection() == up)
+        b = getWorld()->isZombieVomitTriggerAt(getX(), getY() + 4);
+    else if (getDirection() == down)
+         b = getWorld()->isZombieVomitTriggerAt(getX(), getY() - 4);
     
-    if (getWorld()->isZombieVomitTriggerAt(getX(), getY(), getDirection())) {
+    //cout << "b: " << b << endl;
+    if (b){
         double vx, vy;
-        double otherX, otherY, distance;
         getVomitCoords(vx, vy);
-        getWorld()->locateNearestVomitTrigger(getX(), getY(), otherX, otherY, distance);
-        cout << "distance: " << distance << endl;
-        cout << "x: " << static_cast<int>(getX()
-                                          ) << endl;
-        
-        cout << "woah" << endl;
-        if (distance <= 10) {
-            int random = randInt(1, 3);
-            cout << "ee" << endl;
-            if (random == 1) {
-                
-                getWorld()->addActor(new Vomit(vx, vy, getWorld(), getDirection()));
-                getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
-                return;
-            }
+        int random = randInt(1, 3);
+        if (random == 1){
+            getWorld()->addActor(new Vomit(vx, vy, getWorld(), getDirection()));
+            getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
         }
     }
     

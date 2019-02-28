@@ -47,7 +47,7 @@ public:
     
     // Is there something at the indicated location that might cause a
     // zombie to vomit (i.e., a human)?
-    bool isZombieVomitTriggerAt(double x, double y, int dir) ;
+    bool isZombieVomitTriggerAt(double x, double y) ;
     
     // Return true if there is a living human, otherwise false.  If true,
     // otherX, otherY, and distance will be set to the location and distance
@@ -64,6 +64,8 @@ public:
     // otherX, otherY and distance will be set to the location and distance
     // of the one nearest to (x,y).
     bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) ;
+    
+    
 
 private:
     std::vector<Actor*> actors;
@@ -72,6 +74,7 @@ private:
     Penelope* p1;
     //std::vector<Exit*> exits;
     int getInt(std::string s);
+    bool overlaps(double x, double y);
 //    Actor* test;
 };
 
