@@ -19,6 +19,7 @@ public:
     virtual bool shouldBlockAgents();
     virtual bool isAWall();
     virtual bool isAnAgent();
+
     virtual bool paralysis();
     int getTickCount();
     void incTick();
@@ -67,7 +68,7 @@ public:
     virtual void pickUpGoodieIfAppropriate(Goodie* g);
 
     // Does this object trigger landmines only when they're active?
-    //virtual bool triggersOnlyActiveLandmines();
+    virtual bool triggersOnlyActiveLandmines();
 //
 
 //
@@ -139,6 +140,7 @@ public:
     virtual void doSomething();
     virtual bool blowsup();
     virtual void explode();
+    virtual void dieByFallOrBurnIfAppropriate();
 private:
     bool active;
     int ticks;
@@ -195,6 +197,7 @@ public:
     virtual bool paralysis();
     virtual int closerToTarget( int otherX, int otherY);
     virtual void dieByFallOrBurnIfAppropriate();
+    virtual bool triggersOnlyActiveLandmines();
 
     
 private:

@@ -1,3 +1,5 @@
+
+
 #include "Actor.h"
 #include "StudentWorld.h"
 #include "GameConstants.h"
@@ -64,7 +66,7 @@ bool Actor::pickup(){ return false;}
 void Actor::pickUpGoodieIfAppropriate(Goodie* g){}
 bool Actor::blowsup(){ return false;}
 void Actor::explode(){}
-
+bool Actor::triggersOnlyActiveLandmines(){ return false;}
 
 
 
@@ -138,10 +140,11 @@ bool Vomit::infects(){ return true;}
 
 //LANDMINE
 Landmine::Landmine(int startX, int startY, StudentWorld* src): ActivatingObject(IID_LANDMINE, startX, startY, src, right, 1){ active = false; ticks = 30;}
+    //CHANGE BACK TO 30 ACTIVATE
 
 void Landmine::doSomething(){
     ActivatingObject::doSomething();
-    if (!active) {
+    if (active == false) {
         ticks--;
         if (ticks == 0)
             active = true;
@@ -152,27 +155,52 @@ void Landmine::doSomething(){
     
    
 }
-bool Landmine::blowsup(){ return true;}
+bool Landmine::blowsup(){ return active;}
+void Landmine::dieByFallOrBurnIfAppropriate() {
+    
+    explode();
+    
+};
+
 void Landmine::explode(){
+    if (active == false)
+        return;
     
     getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
     getWorld()->addActor(new Flame(getX(), getY(), getWorld(), up));
-    
-    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY(), getWorld(), up));
-    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH, getY(), getWorld(), up));
-    getWorld()->addActor(new Flame(getX(), getY() + SPRITE_HEIGHT, getWorld(), up));
-    getWorld()->addActor(new Flame(getX(), getY() - SPRITE_HEIGHT, getWorld(), up));
-    
-    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY() + SPRITE_HEIGHT, getWorld(), up));
-    getWorld()->addActor(new Flame(getX() + SPRITE_WIDTH, getY() - SPRITE_HEIGHT, getWorld(), up));
-    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH, getY() + SPRITE_HEIGHT, getWorld(), up));
-    getWorld()->addActor(new Flame(getX() - SPRITE_WIDTH
-                                   , getY() - SPRITE_HEIGHT, getWorld(), up));
-    
-    
-    
-    
-    
+
+    int px, py;
+    for (int i = 0; i < 8; i++) {
+        if (i == 0) {
+            px = SPRITE_WIDTH;
+            py = 0;
+        } else if (i == 1){
+            px = -SPRITE_WIDTH;
+            py = 0;
+        } else if (i == 2){
+            px = 0;
+            py = SPRITE_HEIGHT;
+        } else if (i == 3){
+            px = 0;
+            py = -SPRITE_HEIGHT;
+        }else if (i == 4){
+            px = SPRITE_WIDTH;
+            py = SPRITE_HEIGHT;
+        }else if (i == 5){
+            px = SPRITE_WIDTH;
+            py = -SPRITE_HEIGHT;
+        }else if (i == 6){
+            px = -SPRITE_WIDTH;
+            py = SPRITE_WIDTH;
+        }else if (i == 7){
+            px = -SPRITE_WIDTH;
+            py = -SPRITE_WIDTH;
+        }
+        
+        if (!getWorld()->isFlameBlockedAt(getX() + px, getY() + py)) {
+            getWorld()->addActor(new Flame(getX() + px, getY() + py, getWorld(), up));
+        }
+    }
     
     getWorld()->addActor(new Pit(getX(), getY(), getWorld()));
     setDead();
@@ -250,6 +278,7 @@ bool Agent::moveDirBy(int dir, int amt){
 bool Agent::blocksMovement() const{ return true;}
 bool Agent::paralysis(){ return true;}
 void Agent::dieByFallOrBurnIfAppropriate() { setDead();}
+bool Agent::triggersOnlyActiveLandmines(){ return true;}
 
 int Agent::closerToTarget(int otherX, int otherY){
     if (getX() == otherX){
@@ -347,6 +376,9 @@ void Citizen::doSomething(){
     
     //cout << "nearest zombie at: " << static_cast<int>(x) << ", " << static_cast<int>(y) << endl;
     getWorld()->locateNearestCitizenTrigger(getX(), getY(), x, y, distance, isThreat);
+    
+   
+    
     if (!isThreat && distance <= 80) {
         closerToTarget(x, y);
         moveDirBy(getDirection(), 2);
@@ -529,8 +561,7 @@ void Zombie::doSomething(){
         getVomitCoords(vx, vy);
         int random = randInt(1, 3);
         getWorld()->locateNearestVomitTrigger(getX(), getY(), otherX, otherY, dist);
-        if (random == 1){
-           
+        if (random == 1 && pow(vx - otherX, 2) + pow(vy - otherY, 2) <= 100){
             getWorld()->addActor(new Vomit(vx, vy, getWorld(), getDirection()));
             getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
         }
@@ -575,18 +606,24 @@ void DumbZombie::dieByFallOrBurnIfAppropriate(){
     Agent::dieByFallOrBurnIfAppropriate();
     getWorld()->playSound(SOUND_ZOMBIE_DIE);
     
-    if (true/*randInt(1, 9) == 1*/) {
+    if (randInt(1, 9) == 1) {
         int random = randInt(0,3) * 90;
         int px = 0, py = 0;
-        if (random == right || random == left){
-            cout << "right/left " << random << endl;
+        if (random == right){
             px = SPRITE_WIDTH;
-        } else{
+        } else if (random == left){
+            px = -SPRITE_WIDTH;
+        }else if (random == up){
             py = SPRITE_HEIGHT;
-            cout << "up/down " << random << endl;
+        }else{
+            py = -SPRITE_HEIGHT;
         }
         //CHECK IF BLOCKED
-        getWorld()->addActor(new VaccineGoodie(getX() + px, getY() + py, getWorld()));
+        if (!getWorld()->overLaps(getX() + px, getY() + py)) {
+             getWorld()->addActor(new VaccineGoodie(getX() + px, getY() + py, getWorld()));
+            cout << "hi" << endl;
+        }
+       
     }
     getWorld()->increaseScore(1000);
 }

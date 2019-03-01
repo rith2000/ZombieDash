@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <list>
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 
@@ -23,6 +24,9 @@ public:
     double distToPenelope(Actor* a);
     double distToZombie(Actor * a);
     bool overlapsWithA(int x, int y, int otherX, int otherY);
+    bool overLaps(double x, double y);
+    bool bounds(double x, double y);
+
     
     
     // Add an actor to the world.
@@ -74,7 +78,7 @@ public:
     
 
 private:
-    std::vector<Actor*> actors;
+    std::list<Actor*> actors;
     //std::vector<Wall*> walls;
     std::stringstream oss, oss2;
     Penelope* p1;
